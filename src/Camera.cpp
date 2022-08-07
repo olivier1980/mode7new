@@ -1,5 +1,7 @@
 #include "Camera.h"
+#include "Logger/Logger.h"
 
+float RTD = M_PI / 180;
 
 Camera::Camera(SDL_Renderer *renderer) : renderer(renderer) {
     points[0].x = 0;
@@ -49,7 +51,16 @@ void Camera::skewHorizontal(float angle) {
     points[2].y = SDL_tanf(skew) * w + h;
 };
 
-void Camera::Zoom(float z) {
+void Camera::ZoomIn() {
+    Zoom((int)(zoomSpeed*dt));
+}
+
+void Camera::ZoomOut() {
+    Zoom((int)(-zoomSpeed*dt));
+}
+
+void Camera::Zoom(int z) {
+
     zoom += z;
     x += z/2;
     y += z/2;
@@ -68,20 +79,45 @@ void Camera::Zoom(float z) {
     points[3].x = x;
     points[3].y = y+h;
 
-    for (int i = 0; i<4; ++i) {
+    if (angle) {
+        for (int i = 0; i < 4; ++i) {
 
-        points[i].x -= (w/2) + x;
-        points[i].y -= h/2  + y;
+            points[i].x -= (w / 2) + x;
+            points[i].y -= h / 2 + y;
 
-        float rotated_x = points[i].x * cos (angle) - points[i].y * sin (angle);
-        float rotated_y = points[i].x * sin (angle) + points[i].y * cos (angle);
+            float rotated_x = points[i].x * cos(angle) - points[i].y * sin(angle);
+            float rotated_y = points[i].x * sin(angle) + points[i].y * cos(angle);
 
-        rotated_x += (w/2) + x;
-        rotated_y += h/2 + y;
+            rotated_x += (w / 2) + x;
+            rotated_y += h / 2 + y;
 
-        points[i].x = rotated_x;
-        points[i].y = rotated_y;
+            points[i].x = rotated_x;
+            points[i].y = rotated_y;
+        }
     }
+}
+
+void Camera::Update() {
+    if (targetDegreesPerSecond != 0) {
+
+        if ((angle*180)/M_PI < targetDegrees) {
+            angle = targetDegrees*RTD;
+            targetDegreesPerSecond = 0;
+            return;
+        }
+
+        auto d = targetDegreesPerSecond * dt;
+        if (targetRotateLeft) {
+            rotate(d);
+        }
+    }
+}
+
+void Camera::rotateTo(float degrees, float sec) {
+
+    targetDegreesPerSecond = degrees/sec;
+    targetDegrees = degrees;
+
 }
 
 void Camera::changeHeight (float d) {
@@ -89,14 +125,20 @@ void Camera::changeHeight (float d) {
 };
 
 void Camera::rotate(float degrees) {
+
+    Logger::Log("degrees = " + std::to_string(degrees));
+    degrees = RTD*degrees;
+    Logger::Log("radial = " + std::to_string(degrees));
     angle += degrees;
+    Logger::Log("angle = " + std::to_string(angle));
+
     for (int i = 0; i<4; ++i) {
 
         points[i].x -= (w/2) + x;
         points[i].y -= h/2  + y;
 
-        float rotated_x = points[i].x * cos (degrees) - points[i].y * sin (degrees);
-        float rotated_y = points[i].x * sin (degrees) + points[i].y * cos (degrees);
+        float rotated_x = points[i].x * SDL_cosf (-degrees) - points[i].y * SDL_sinf (-degrees);
+        float rotated_y = points[i].x * SDL_sinf (-degrees) + points[i].y * SDL_cosf (-degrees);
 
         rotated_x += (w/2) + x;
         rotated_y += h/2 + y;
@@ -110,7 +152,6 @@ void Camera::rotate(float degrees) {
 void Camera::debugDraw(float factor)
     {
         SDL_SetRenderDrawColor(renderer, 255,0,0,155);
-
 
         for (int i = 0; i<4; ++i) {
             if (i>0) {

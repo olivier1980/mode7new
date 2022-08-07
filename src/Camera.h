@@ -1,9 +1,9 @@
 #ifndef MODE7MYSDL_CAMERA_H
 #define MODE7MYSDL_CAMERA_H
 
-
-
 #include <SDL.h>
+
+//float RTD = M_PI / 380;
 
 struct Point {
     float x,y;
@@ -20,8 +20,16 @@ public:
     float angle{};
     float zoom{1};
     float skew{};
+    float zoomSpeed{100.0f};
     int height = 20;
     Point points[4]{};
+
+    float dt;
+
+    float targetDegrees{};
+    float timeElapsed{};
+    float targetDegreesPerSecond{};
+    bool targetRotateLeft = true;
 
     void moveLeft(float d);
     void moveRight(float d);
@@ -30,14 +38,16 @@ public:
 
     void skewHorizontal(float angle);
 
-    void Zoom(float z);
-
+    void ZoomIn();
+    void ZoomOut();
+    void rotateTo(float degrees, float sec);
     void changeHeight (float d);
 
+    void Update();
     void rotate(float degrees);
-
     void debugDraw(float factor);
 private:
+    void Zoom(int zoomSpeed);
     SDL_Renderer *renderer;
 };
 

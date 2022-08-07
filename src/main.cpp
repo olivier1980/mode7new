@@ -8,6 +8,8 @@
 #include "Camera.h"
 #define MOVE_SPEED 5
 
+const int FPS = 60;
+const int MILLISECS_PER_FRAME = 1000 / FPS;
 /*
  * TOP DOWN
  * left = move camera left
@@ -20,7 +22,7 @@
  * FOV = angle
  */
 
-bool CameraTopDownMode = false;
+bool CameraTopDownMode = true;
 SDL_Event ev;
 
 
@@ -83,6 +85,7 @@ void init()
 }
 
 bool switchView{};
+int millisecsPreviousFrame = 0;
 
 int main(int argc, char *argv[]) {
 
@@ -117,8 +120,17 @@ int main(int argc, char *argv[]) {
     int sampleHeight = 200;
 
     while(running) {
+        int timeToWait = MILLISECS_PER_FRAME - (SDL_GetTicks64() - millisecsPreviousFrame);
+        if (timeToWait > 0 && timeToWait <= MILLISECS_PER_FRAME) {
+            SDL_Delay(timeToWait);
+        }
+        double deltaTime = (SDL_GetTicks64() - millisecsPreviousFrame) / 1000.0;
+        //std::cout << deltaTime << std::endl;
+        // Store the "previous" frame time
+        millisecsPreviousFrame = SDL_GetTicks64();
+        //Logger::Log(switchView);
 
-        Logger::Log(switchView);
+        c.dt = deltaTime;
 
         if (moveUp) {
             c.moveUp(MOVE_SPEED);
@@ -137,19 +149,19 @@ int main(int argc, char *argv[]) {
           //  camera.x += MOVE_SPEED;
         }
         if (rotateLeft) {
-            c.rotate(-0.01f);
+            c.rotate(1.0f);
            // cameraRotation-=.01f;
         }
         if (rotateRight) {
-            c.rotate(0.01f);
+            c.rotate(-1.0f); //clockwise rotation is negative
            // cameraRotation+=.01f;
         }
         if (zoomIn) {
-            c.Zoom(1);
+            c.ZoomIn();
             //shrinkRect(camera);
         }
         if (zoomOut) {
-            c.Zoom(-1);
+            c.ZoomOut();
             //growRect(camera);
         }
 
@@ -192,7 +204,31 @@ int main(int argc, char *argv[]) {
         float dest_y;
         float rotated_x, rotated_y;
 
+        if (switchView) {
 
+            if (CameraTopDownMode) {
+                if (c.zoom < 130) {
+                    Logger::Log(c.zoom);
+                    c.zoomSpeed = 160;
+                    //zoomIn = true;
+                    //rotateLeft = true;
+                    c.rotateTo(-90, 5);
+                    switchView = false;
+                    //c.Zoom(2 * deltaTime);
+                } else {
+
+                    zoomIn =false;
+                    //CameraTopDownMode = false;
+                }
+            } else {
+
+
+
+            }
+
+
+        }
+        //Logger::Log(c.zoom);
         if (CameraTopDownMode) {
 
 
@@ -213,7 +249,8 @@ int main(int argc, char *argv[]) {
                     dest_x = rotated_x + (c.w / 2.0f) + c.x;
                     dest_y = rotated_y + (c.h / 2.0f) + c.y;
 
-                    Uint32 pixel = get_pixel(convertedSurface, (int) dest_x & x_mask,
+                    Uint32 pixel = get_pixel(convertedSurface,
+                                             (int) dest_x & x_mask,
                                              (int) dest_y & y_mask);
 
                     put_pixel(newSurface, x, y, pixel);
@@ -273,7 +310,7 @@ int main(int argc, char *argv[]) {
 
         SDL_RenderPresent(renderer);
 
-
+        c.Update();
 
         while (SDL_PollEvent(&ev)) {
             const Uint8 *keys = SDL_GetKeyboardState(nullptr);

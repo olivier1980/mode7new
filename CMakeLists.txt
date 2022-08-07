@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(mode7mysdl)
+project(mode7_new)
 
 set(CMAKE_CXX_STANDARD 20)
 
