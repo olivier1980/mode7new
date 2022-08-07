@@ -5,7 +5,7 @@
 #include "Logger/Logger.h"
 #include <filesystem>
 #include "function.h"
-
+#include "Camera.h"
 #define MOVE_SPEED 5
 
 /*
@@ -20,7 +20,7 @@
  * FOV = angle
  */
 
-bool CameraTopDownMode = true;
+bool CameraTopDownMode = false;
 SDL_Event ev;
 
 
@@ -47,6 +47,7 @@ SDL_Renderer *renderer;
 bool zoomIn, zoomOut;
 bool rotateLeft, rotateRight;
 bool moveLeft, moveRight, moveUp, moveDown;
+bool flyUp, flyDown;
 bool skew;
 //float cameraRotation{0.0f};
 
@@ -74,11 +75,14 @@ void init()
 
         exit(-1);
     }
+    SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, "1" );
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!renderer) {
         exit(-1);
     }
 }
+
+bool switchView{};
 
 int main(int argc, char *argv[]) {
 
@@ -109,7 +113,13 @@ int main(int argc, char *argv[]) {
 
     bool running = true;
 
+    int horizon = 50;
+    int sampleHeight = 200;
+
     while(running) {
+
+        Logger::Log(switchView);
+
         if (moveUp) {
             c.moveUp(MOVE_SPEED);
         }
@@ -138,11 +148,13 @@ int main(int argc, char *argv[]) {
             c.Zoom(1);
             //shrinkRect(camera);
         }
-
         if (zoomOut) {
             c.Zoom(-1);
             //growRect(camera);
         }
+
+        if (flyUp) c.changeHeight(1);
+        if (flyDown) c.changeHeight(-1);
 
         if (skew) {
             c.skewHorizontal(0.01f);
@@ -180,33 +192,72 @@ int main(int argc, char *argv[]) {
         float dest_y;
         float rotated_x, rotated_y;
 
-        for(int y = 0; y < c.h; y++) {
 
-            // set the position in the source bitmap to the
-            // beginning of this line
-            src_x = start_x;
-            src_y = start_y;
+        if (CameraTopDownMode) {
 
-            for(int x = 0; x < c.w; x++) {
-                dest_x = src_x - (c.w/2.0f) - c.x;
-                dest_y = src_y - (c.h/2.0f) - c.y;
 
-                rotated_x = dest_x * cos (c.angle) - dest_y * sin (c.angle);
-                rotated_y = dest_x * sin (c.angle) + dest_y * cos (c.angle);
+            for (int y = 0; y < c.h; y++) {
 
-                dest_x = rotated_x + (c.w/2.0f) + c.x;
-                dest_y = rotated_y + (c.h/2.0f) + c.y;
+                // set the position in the source bitmap to the
+                // beginning of this line
+                src_x = start_x;
+                src_y = start_y;
 
-                Uint32 pixel = get_pixel( convertedSurface, (int)dest_x % 1024 & x_mask, (int)dest_y % 1024 & y_mask );
+                for (int x = 0; x < c.w; x++) {
+                    dest_x = src_x - (c.w / 2.0f) - c.x;
+                    dest_y = src_y - (c.h / 2.0f) - c.y;
 
-                put_pixel(newSurface, x, y, pixel);
+                    rotated_x = dest_x * cos(c.angle) - dest_y * sin(c.angle);
+                    rotated_y = dest_x * sin(c.angle) + dest_y * cos(c.angle);
 
-                // advance the position in the source bitmap
-                src_x++;
+                    dest_x = rotated_x + (c.w / 2.0f) + c.x;
+                    dest_y = rotated_y + (c.h / 2.0f) + c.y;
+
+                    Uint32 pixel = get_pixel(convertedSurface, (int) dest_x & x_mask,
+                                             (int) dest_y & y_mask);
+
+                    put_pixel(newSurface, x, y, pixel);
+
+                    // advance the position in the source bitmap
+                    src_x++;
+                }
+
+                // for the next line we have a different starting position
+                start_y++;
             }
 
-            // for the next line we have a different starting position
-            start_y++;
+        } else {
+
+            // the distance and horizontal scale of the line we are drawing
+
+            float fFoVHalf = M_PI / 4;
+
+            for (int y = 0; y < newSurface->h/2; y++) {
+                float angle = -c.angle-0.5*M_PI;
+                float distance = c.height * sampleHeight / (y + horizon);
+                float fStartX = -c.x + (cosf(angle + fFoVHalf) * distance);
+                float fStartY = -c.y - (sinf(angle + fFoVHalf) * distance);
+                float fEndX = -c.x + (cosf(angle - fFoVHalf) * distance);
+                float fEndY = -c.y - (sinf(angle - fFoVHalf) * distance);
+
+//                Logger::Log("first: " + std::to_string(first) + ", second " + std::to_string(second) + ", final: " + std::to_string(distance));
+//                //huh++;
+
+
+                //SDL_RenderDrawLine(renderer, spacex, spacey, spacex  * 200, spacey * 200);
+                // go through all points in this screen line
+                for (int x = 0; x < newSurface->w; x++) {
+                    float fSampleWidth = (float)x / 200;
+                    float fSampleX = fStartX + ((fEndX - fStartX) * fSampleWidth);
+                    float fSampleY = fStartY + ((fEndY - fStartY) * fSampleWidth);
+
+                    auto pixel = get_pixel(convertedSurface,
+                                           (int) fSampleX & x_mask,
+                                           (int) fSampleY & y_mask);
+
+                    put_pixel(newSurface, (int) x, (int) y + newSurface->h/2, pixel);
+                }
+            }
         }
 
         auto tmpTexture = SDL_CreateTextureFromSurface(renderer, newSurface);
@@ -235,6 +286,31 @@ int main(int argc, char *argv[]) {
             moveUp = false;
             moveDown = false;
             skew = false;
+            flyDown = false;
+            flyUp = false;
+
+            //TODO normalize movement
+            if (keys[SDL_SCANCODE_LEFT]) {
+                rotateLeft = true;
+            }
+            if (keys[SDL_SCANCODE_RIGHT]) {
+                rotateRight = true;
+            }
+            if (keys[SDL_SCANCODE_W]) {
+                moveUp = true;
+            }
+            if (keys[SDL_SCANCODE_S]) {
+                moveDown = true;
+            }
+            if (keys[SDL_SCANCODE_A]) {
+                moveLeft = true;
+            }
+            if (keys[SDL_SCANCODE_D]) {
+                moveRight = true;
+            }
+
+            if(keys[SDL_SCANCODE_PAGEUP]) flyUp = true;
+            if(keys[SDL_SCANCODE_PAGEDOWN]) flyDown = true;
 
             if (CameraTopDownMode) {
                 if (keys[SDL_SCANCODE_Z]) {
@@ -243,32 +319,12 @@ int main(int argc, char *argv[]) {
                 if (keys[SDL_SCANCODE_X]) {
                     zoomOut = true;
                 }
-                if (keys[SDL_SCANCODE_A]) {
-                    rotateLeft = true;
-                }
-                if (keys[SDL_SCANCODE_D]) {
-                    rotateRight = true;
-                }
-                if (keys[SDL_SCANCODE_LEFT]) {
-                    moveLeft = true;
-                }
-                if (keys[SDL_SCANCODE_RIGHT]) {
-                    moveRight = true;
-                }
-                if (keys[SDL_SCANCODE_UP]) {
-                    moveUp = true;
-                }
-                if (keys[SDL_SCANCODE_DOWN]) {
-                    moveDown = true;
-                }
+
+
                 if (keys[SDL_SCANCODE_T]) {
                     skew = true;
                 }
             }
-
-
-
-
 
             switch (ev.type) {
                 case SDL_QUIT:
@@ -276,7 +332,17 @@ int main(int argc, char *argv[]) {
                     break;
                 case SDL_KEYDOWN:
                     if (ev.key.keysym.sym == SDLK_ESCAPE) running = false;
+
+                    if (ev.key.keysym.sym == SDLK_g) switchView = !switchView;
+
+
+                    if (ev.key.keysym.sym == SDLK_o) horizon++;
+                    if (ev.key.keysym.sym == SDLK_p) horizon !=1 ? horizon-- : 1;
+                    if (ev.key.keysym.sym == SDLK_k) sampleHeight++;
+                    if (ev.key.keysym.sym == SDLK_l) sampleHeight--;
                     break;
+
+
             }
         }
 
@@ -290,9 +356,3 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-
-void ControlCheck() {
-
-
-
-}
