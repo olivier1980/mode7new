@@ -26,43 +26,37 @@ const int MILLISECS_PER_FRAME = 1000 / FPS;
 bool CameraTopDownMode = true;
 SDL_Event ev;
 
-
-TTF_Font* tmpfont;
+TTF_Font* font;
 void loadfont() {
-    tmpfont = TTF_OpenFont("I:\\fonts\\FreeSans.ttf", 22);
-    if (tmpfont == nullptr){
-        //printf("Unable to load font: %s %s \n", file, TTF_GetError());
+    font = TTF_OpenFont("I:\\fonts\\FreeSans.ttf", 22);
+    if (font == nullptr){
+        Logger::Err(TTF_GetError());
         exit(-1);
     }
 }
 
-
 SDL_Window *window;
 SDL_Renderer *renderer;
-//SDL_Rect camera {
-//        .x = 0,
-//        .y = 0,
-//        .w = 200,
-//        .h = 200
-//};
-
+SDL_Rect rectLeft;
+SDL_Rect rectRight;
 
 bool zoomIn, zoomOut;
 bool rotateLeft, rotateRight;
 bool moveLeft, moveRight, moveUp, moveDown;
 bool flyUp, flyDown;
 bool skew;
-//float cameraRotation{0.0f};
 
-SDL_Rect rectLeft;
-SDL_Rect rectRight;
+
 
 void init()
 {
     if (SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-
         exit(-1);
     }
+    if (TTF_Init() != 0) {
+        exit(-1);
+    }
+
     SDL_DisplayMode displayMode;
     SDL_GetCurrentDisplayMode(0, &displayMode);
 
@@ -83,11 +77,62 @@ void init()
     if (!renderer) {
         exit(-1);
     }
+    loadfont();
 }
+
+struct Mode7Params {
+    float fFoVDivider{5.0f};
+    float sampleHeight{200.0f};
+    float sampleWidth{200.0f};
+    float horizon = 5.0f;
+};
+
+Mode7Params mode7Params;
 
 bool switchView{};
 int millisecsPreviousFrame = 0;
-int fFoVDivider{4};
+//int fFoVDivider{4};
+
+SDL_Color White = {255,255,255};
+
+void drawDebug(SDL_Renderer *r, const char *message, int x, int y)
+{
+    SDL_Surface *textSurface = TTF_RenderText_Solid(font, message, White);
+    int text_width = textSurface->w;
+    int text_height = textSurface->h;
+
+    SDL_Rect textLocation = { 600 +x, y, text_width, text_height };
+    SDL_Texture* guiTexture = SDL_CreateTextureFromSurface(r, textSurface);
+    SDL_FreeSurface(textSurface);
+
+    SDL_RenderCopy(r, guiTexture, nullptr, &textLocation);
+    SDL_DestroyTexture(guiTexture);
+}
+//
+//void drawGui(SDL_Renderer *r) {
+//    SDL_Rect guiRect; //create a rect
+//    guiRect.x = 610;
+//    guiRect.y = 0;
+//    guiRect.h = 300;
+//    guiRect.w = 600;
+//
+//    SDL_Surface  *sur = SDL_CreateRGBSurface (0, 600, 300, 32,0,0,0,0);
+//    SDL_Surface  *guiSurface = SDL_ConvertSurfaceFormat(sur, SDL_PIXELFORMAT_RGBA32, 0);
+//    SDL_FreeSurface(sur);
+//
+//    drawDebug(guiSurface, "Restartfsfsfsfsfs fsf sf sfsfsfsfs");
+//
+//    SDL_Surface *textSurface = TTF_RenderText_Solid(font, "rest", White);
+//
+//
+//    SDL_Texture* guiTexture = SDL_CreateTextureFromSurface(r, textSurface);
+//    //SDL_Texture* guiTexture = SDL_CreateTextureFromSurface(r, guiSurface);
+//
+//    SDL_FreeSurface(guiSurface);
+//    SDL_Rect textLocation = { 610, 0, text_width, text_height };
+//    SDL_RenderCopy(r, guiTexture, nullptr, &textLocation);
+//    SDL_DestroyTexture(guiTexture);
+//}
 
 int main(int argc, char *argv[]) {
 
@@ -111,17 +156,9 @@ int main(int argc, char *argv[]) {
     rectLeft.w = 600;
     rectLeft.h = 600;
 
-    rectRight.x = 600;
-    rectRight.y=  0;
-    rectRight.w = 600;
-    rectRight.h = 600;
+
 
     bool running = true;
-
-    int horizon = 50;
-    int sampleHeight = 200;
-
-
 
     while(running) {
         int timeToWait = MILLISECS_PER_FRAME - (SDL_GetTicks64() - millisecsPreviousFrame);
@@ -159,6 +196,11 @@ int main(int argc, char *argv[]) {
 
         c.Update();
         SDL_Rect camera = c.getZoomedSDLRect();
+
+        rectRight.x = 600;
+        rectRight.y=  CameraTopDownMode ? 0 : 300;
+        rectRight.w = 600;
+        rectRight.h = 600;
 
         //Clear
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
@@ -258,21 +300,20 @@ int main(int argc, char *argv[]) {
         } else {
 
             // the distance and horizontal scale of the line we are drawing
+            float fFoVHalf = M_PI / mode7Params.fFoVDivider;
 
-            float fFoVHalf = M_PI / fFoVDivider;
-            //Logger::Log(std::to_string(c.x) + ", " + std::to_string(c.y));
             for (int y = 0; y < newSurface->h/2; y++) {
-                //float angle = -c.angle-0.5*M_PI;
+
                 float angle = c.angle;
-                float distance = c.height * sampleHeight / (y + horizon);
-                //distance = y+1;
+                float distance = c.height * mode7Params.sampleHeight / (y + mode7Params.horizon);
+
+                //Center startX, startY
                 float fStartX = (c.x + c.w/2) + (cosf(-angle + fFoVHalf) * distance);
                 float fStartY = (c.y + c.h/2) - (sinf(-angle + fFoVHalf) * distance);
+
                 //Logger::Log(std::to_string(fStartX) + ", " + std::to_string(fStartY));
-
-
                 float fEndX = c.x + c.w/2 + (cosf(-angle - fFoVHalf) * distance);
-                float fEndY = (c.y + c.h/2) - (sinf(-angle - fFoVHalf) * distance);
+                float fEndY = c.y + c.h/2 - (sinf(-angle - fFoVHalf) * distance);
 
                 //Logger::Log(std::to_string(fEndX) + ", " + std::to_string(fEndY));
 
@@ -286,7 +327,7 @@ int main(int argc, char *argv[]) {
                 //SDL_RenderDrawLine(renderer, spacex, spacey, spacex  * 200, spacey * 200);
                 // go through all points in this screen line
                 for (int x = 0; x < newSurface->w; x++) {
-                    float fSampleWidth = (float)x / 200;
+                    float fSampleWidth = (float)x / mode7Params.sampleWidth;
                     float fSampleX = fStartX + ((fEndX - fStartX) * fSampleWidth);
                     float fSampleY = fStartY + ((fEndY - fStartY) * fSampleWidth);
 
@@ -309,6 +350,17 @@ int main(int argc, char *argv[]) {
         //SDL_RenderCopy(renderer, texture , &camera, &rectRight);
 
         SDL_DestroyTexture(tmpTexture);
+
+
+        drawDebug(renderer, ("Horizon: " + std::to_string(mode7Params.horizon)).c_str(), 0, 0);
+        drawDebug(renderer,  ("sampleWidth: " + std::to_string(mode7Params.sampleWidth)).c_str(), 0, 20);
+        drawDebug(renderer,  ("sampleHeight: " + std::to_string(mode7Params.sampleHeight)).c_str(), 0, 40);
+        drawDebug(renderer,  ("fFoVDivider: " + std::to_string(mode7Params.fFoVDivider)).c_str(), 0, 60);
+        drawDebug(renderer,  ("Angle: " + std::to_string(c.angle*RTD)).c_str(), 0, 80);
+        drawDebug(renderer,  ("X,Y: " + std::to_string(camera.x) + ", "
+                                        + std::to_string(camera.x)
+
+        ).c_str(), 0, 100);
 
         SDL_RenderPresent(renderer);
 
@@ -376,13 +428,16 @@ int main(int argc, char *argv[]) {
                     if (ev.key.keysym.sym == SDLK_1) switchView = !switchView;
 
 
-                    if (ev.key.keysym.sym == SDLK_o) horizon++;
-                    if (ev.key.keysym.sym == SDLK_p) horizon !=1 ? horizon-- : 1;
-                    if (ev.key.keysym.sym == SDLK_k) sampleHeight++;
-                    if (ev.key.keysym.sym == SDLK_l) sampleHeight--;
+                    if (ev.key.keysym.sym == SDLK_o) mode7Params.horizon++;
+                    if (ev.key.keysym.sym == SDLK_p) mode7Params.horizon !=1 ? mode7Params.horizon-- : 1;
+                    if (ev.key.keysym.sym == SDLK_k) mode7Params.sampleHeight++;
+                    if (ev.key.keysym.sym == SDLK_l) mode7Params.sampleHeight--;
 
-                    if (ev.key.keysym.sym == SDLK_f) fFoVDivider--;
-                    if (ev.key.keysym.sym == SDLK_g) fFoVDivider++;
+                    if (ev.key.keysym.sym == SDLK_2) mode7Params.sampleWidth++;
+                    if (ev.key.keysym.sym == SDLK_3) mode7Params.sampleWidth--;
+
+                    if (ev.key.keysym.sym == SDLK_f) mode7Params.fFoVDivider--;
+                    if (ev.key.keysym.sym == SDLK_g) mode7Params.fFoVDivider++;
 
                     if (ev.key.keysym.sym == SDLK_y) CameraTopDownMode = !CameraTopDownMode;
 

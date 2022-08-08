@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "glm/glm.hpp"
 //#include "Logger/Logger.h"
 
 float DTR = M_PI/180.0f;
@@ -18,22 +19,32 @@ void Camera::Reset() {
     height = 20;
 }
 
-
+//actually strafe
 void Camera::moveLeft(float d) {
-    x-=d;
+    float sideAngle = angle + 1.5*M_PI;
+
+    float dx = cos(sideAngle) * d;
+    float dy = sin(sideAngle) * d;
+    x += dx;
+    y += dy;
 }
 void Camera::moveRight(float d) {
-    x+=d;
+    float sideAngle = angle + 0.5*M_PI;
+
+    float dx = cos(sideAngle) * d;
+    float dy = sin(sideAngle) * d;
+    x += dx;
+    y += dy;
 }
 void Camera::moveUp(float d) {
-    float dx = SDL_cosf(angle)*d;
-    float dy = SDL_sinf(angle)*d;
+    float dx = cos(angle) * d;
+    float dy = sin(angle) * d;
     x += dx;
     y += dy;
 };
 void Camera::moveDown(float d) {
-    float dx = SDL_cosf(angle)*d;
-    float dy = SDL_sinf(angle)*d;
+    float dx = SDL_cosf(angle) * d;
+    float dy = SDL_sinf(angle) * d;
     x -= dx;
     y -= dy;
 };

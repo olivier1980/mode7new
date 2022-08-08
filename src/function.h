@@ -1,6 +1,7 @@
 #ifndef MODE7MYSDL_FUNCTION_H
 #define MODE7MYSDL_FUNCTION_H
 
+#include <SDL_ttf.h>
 
 //void shrinkRect(SDL_Rect &input, const float v = 2, bool fromCenter = true)
 //{
@@ -34,6 +35,12 @@
 //            .h = newH
 //    };
 //}
+
+
+
+
+
+
 
 // get_pixel: Acquires a 32-bit pixel from a surface at given coordinates
 Uint32 get_pixel( SDL_Surface* surface, int x, int y )

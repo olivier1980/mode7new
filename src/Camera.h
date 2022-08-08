@@ -10,12 +10,12 @@ class Camera {
 public:
     Camera() = default;
 
-    int x{};
-    int y{};
+    float x{300};
+    float y{300};
     int w{200};
     int h{200};
 
-    float angle{};
+    float angle{35*DTR};
     float zoom{};
     float skew{};
     float zoomSpeed{100.0f};
@@ -80,8 +80,8 @@ public:
         );
 
         return SDL_Rect {
-            .x = x + (int)(localZoom / 2.0f),
-            .y = y + (int)(localZoom / 2.0f),
+            .x = (int)(x + (localZoom / 2.0f)),
+            .y = (int) (y + (localZoom / 2.0f)),
             .w = w - localZoom,
             .h = h - localZoom
         };

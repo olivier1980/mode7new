@@ -25,7 +25,7 @@ public:
         points[3].y = rect.y+rect.h;
 
         //apply rotation
-        if (angle != 0) {
+        //if (angle != 0) {
             for (int i = 0; i < 4; ++i) {
 
                 points[i].x -= (rect.w / 2) + rect.x;
@@ -40,7 +40,7 @@ public:
                 points[i].x = rotated_x;
                 points[i].y = rotated_y;
             }
-        }
+        //}
 
     }
 
