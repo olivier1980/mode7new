@@ -23,7 +23,7 @@ const int MILLISECS_PER_FRAME = 1000 / FPS;
  * FOV = angle
  */
 
-bool CameraTopDownMode = false;
+bool CameraTopDownMode = true;
 SDL_Event ev;
 
 
@@ -158,6 +158,7 @@ int main(int argc, char *argv[]) {
         }
 
         c.Update();
+        SDL_Rect camera = c.getZoomedSDLRect();
 
         //Clear
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
@@ -170,30 +171,11 @@ int main(int argc, char *argv[]) {
 
         //Texture is twice the size in left panel, to compensate the camera should be drawn halved
         float factor = (float)rectLeft.w / convertedSurface->w;
+        RotateRect rotateRect(camera, c.angle);
+        rotateRect.DrawRect(renderer, factor);
 
-        //if (CameraTopDownMode) {
-            RotateRect rotateRect(c.x, c.y, c.w, c.h, c.zoom, c.angle);
-            rotateRect.DrawRect(renderer, factor);
-        //}
-
-
-       // c.debugDraw(factor);
-
-
-        int newX = c.x;
-        int newY = c.y;
-        int newW = c.w;
-        int newH = c.h;
-
-        if ((int)c.zoom % 2 == 0 && (int)c.zoom != 0 ) {
-            newX += c.zoom / 2.0f;
-            newY += c.zoom / 2.0f;
-            newW -= c.zoom ;
-            newH -= c.zoom ;
-        }
-
-
-        SDL_Surface  *sur = SDL_CreateRGBSurface (0, newW, newH, 32,0,0,0,0);
+        //Setup surface
+        SDL_Surface  *sur = SDL_CreateRGBSurface (0, camera.w, camera.h, 32,0,0,0,0);
         SDL_Surface  *newSurface = SDL_ConvertSurfaceFormat(sur, SDL_PIXELFORMAT_RGBA32, 0);
         SDL_FreeSurface(sur);
 
@@ -202,8 +184,8 @@ int main(int argc, char *argv[]) {
 
         // current position in the source bitmap
         float src_x, src_y;
-        float start_x = newX;
-        float start_y = newY;
+        int start_x = camera.x;
+        int start_y = camera.y;
 
         float dest_x;
         float dest_y;
@@ -217,9 +199,9 @@ int main(int argc, char *argv[]) {
                    // c.zoomSpeed = 160;
                     //zoomIn = true;
                     //rotateLeft = true;
-                    //c.rotateTo(90, 5);
-                    c.zoomTo(28, 2);
-                switchView = false;
+                    c.rotateTo(90, 5);
+                    c.zoomTo(68, 2);
+                    switchView = false;
                     //c.Zoom(2 * deltaTime);
                // } else {
                     switchView = false;
@@ -237,17 +219,17 @@ int main(int argc, char *argv[]) {
         //Logger::Log(c.zoom);
         if (CameraTopDownMode) {
 
-            for (int y = 0; y < newH; y++) {
+            for (int y = 0; y < camera.h; y++) {
 
                 // set the position in the source bitmap to the
                 // beginning of this line
                 src_x = start_x;
                 src_y = start_y;
 
-                for (int x = 0; x < newW; x++) {
+                for (int x = 0; x < camera.w; x++) {
 
-                    dest_x = src_x - (newW / 2.0f) - newX;
-                    dest_y = src_y - (newH / 2.0f) - newY;
+                    dest_x = src_x - (camera.w / 2.0f) - camera.x;
+                    dest_y = src_y - (camera.h / 2.0f) - camera.y;
 
                     //We need an offset to the angle ;
                     //start of angle zero means right-facing, so rotate camera when seen top down.
@@ -256,8 +238,8 @@ int main(int argc, char *argv[]) {
                     rotated_x = dest_x * cos(c.angle+0.5*M_PI) - dest_y * sin(c.angle+0.5*M_PI);
                     rotated_y = dest_x * sin(c.angle+0.5*M_PI) + dest_y * cos(c.angle+0.5*M_PI);
 
-                    dest_x = rotated_x + (newW / 2.0f) + newX;
-                    dest_y = rotated_y + (newH / 2.0f) + newY;
+                    dest_x = rotated_x + (camera.w / 2.0f) + camera.x;
+                    dest_y = rotated_y + (camera.h / 2.0f) + camera.y;
 
                     Uint32 pixel = get_pixel(convertedSurface,
                                              (int) dest_x & x_mask,
@@ -278,7 +260,7 @@ int main(int argc, char *argv[]) {
             // the distance and horizontal scale of the line we are drawing
 
             float fFoVHalf = M_PI / fFoVDivider;
-            Logger::Log(std::to_string(c.x) + ", " + std::to_string(c.y));
+            //Logger::Log(std::to_string(c.x) + ", " + std::to_string(c.y));
             for (int y = 0; y < newSurface->h/2; y++) {
                 //float angle = -c.angle-0.5*M_PI;
                 float angle = c.angle;
@@ -286,13 +268,13 @@ int main(int argc, char *argv[]) {
                 //distance = y+1;
                 float fStartX = (c.x + c.w/2) + (cosf(-angle + fFoVHalf) * distance);
                 float fStartY = (c.y + c.h/2) - (sinf(-angle + fFoVHalf) * distance);
-                Logger::Log(std::to_string(fStartX) + ", " + std::to_string(fStartY));
+                //Logger::Log(std::to_string(fStartX) + ", " + std::to_string(fStartY));
 
 
                 float fEndX = c.x + c.w/2 + (cosf(-angle - fFoVHalf) * distance);
                 float fEndY = (c.y + c.h/2) - (sinf(-angle - fFoVHalf) * distance);
 
-                Logger::Log(std::to_string(fEndX) + ", " + std::to_string(fEndY));
+                //Logger::Log(std::to_string(fEndX) + ", " + std::to_string(fEndY));
 
                 SDL_RenderDrawLine(renderer, fStartX*factor, fStartY*factor, fEndX*factor, fEndY*factor);
 
@@ -391,7 +373,7 @@ int main(int argc, char *argv[]) {
                 case SDL_KEYDOWN:
                     if (ev.key.keysym.sym == SDLK_ESCAPE) running = false;
 
-                    if (ev.key.keysym.sym == SDLK_g) switchView = !switchView;
+                    if (ev.key.keysym.sym == SDLK_1) switchView = !switchView;
 
 
                     if (ev.key.keysym.sym == SDLK_o) horizon++;

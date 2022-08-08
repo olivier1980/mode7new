@@ -1,5 +1,5 @@
 #include "Camera.h"
-#include "Logger/Logger.h"
+//#include "Logger/Logger.h"
 
 float DTR = M_PI/180.0f;
 float RTD = 180.0f/M_PI;
@@ -11,6 +11,8 @@ void Camera::Reset() {
     h = 200;
     angle = 0;
     zoom = 0;
+    targetZoomPerSecond = 0;
+    targetDegreesPerSecond = 0;
 
     zoomSpeed = 100.0f;
     height = 20;
@@ -76,7 +78,8 @@ void Camera::Update() {
 
     if (targetZoomPerSecond != 0) {
 
-        if (zoom == targetZoom) {
+        //Logger::Log(std::to_string((int)zoom) +  " - " + std::to_string((int)targetZoom));
+        if ((int)zoom >= (int)targetZoom) {
             //angle = targetDegrees*DTR;
             targetZoomPerSecond = 0;
             return;
@@ -113,7 +116,7 @@ void Camera::rotate(float degrees) {
     float radials = degrees * DTR;
     //Logger::Log("radial = " + std::to_string(radials/M_PI));
     angle += radials;
-    Logger::Log("angle = " + std::to_string(angle/M_PI));
+    //Logger::Log("angle = " + std::to_string(angle/M_PI));
 
 }
 
