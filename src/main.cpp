@@ -93,7 +93,7 @@ struct Mode7Params {
     float sampleHeight{200.0f};
     float sampleWidth{200.0f};
     float horizon = 5.0f; //5
-    int winHeight = 300;
+    int winHeight = 600; //animate this
     int winYPos = 300;
 };
 

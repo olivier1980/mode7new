@@ -1,19 +1,32 @@
 #pragma once
 
 #include <SDL.h>
+#include <functional>
+#include <utility>
 #include "Logger/Logger.h"
 
 extern float DTR;// = M_PI/180.0f;
 extern float RTD;// = 180.0f/M_PI;
 
+struct Mode7Param {
+    float fFoVDivider{5.0f};
+    float sampleHeight{200.0f};
+    float sampleWidth{200.0f};
+    float horizon = 5.0f; //5
+    int winHeight = 600; //animate this
+    int winYPos = 300;
+};
+
 class Camera {
 public:
     Camera() = default;
-
+    Mode7Param mode7Params;
+    bool CameraTopDownMode = true;
     float x{300};
     float y{300};
     int w{200};
     int h{200};
+
 
     float angle{35*DTR};
     float zoom{};
@@ -25,9 +38,12 @@ public:
 
     float targetDegrees{};
     float targetDegreesPerSecond{};
+
     float targetZoom{};
     float targetZoomPerSecond{};
+    float targetZoomIn = true;
 
+    std::function<void(Camera &t)> targetCallback;
 
     void moveLeft(float d);
     void moveRight(float d);
@@ -39,8 +55,40 @@ public:
     void Zoom(float zoomSpeed);
     void ZoomIn();
     void ZoomOut();
-    void zoomTo(float z, float sec);
+
+    int getWindowHeight() const
+    {
+        return CameraTopDownMode ? h : mode7Params.winHeight;
+    }
+
+    int getWindowHeightOffset() const
+    {
+        return CameraTopDownMode ? 0 : mode7Params.winYPos;
+    }
+
+    void zoomTo(float z, float sec, bool zoomIn = true) {
+        targetZoom = z;
+        targetZoomPerSecond = (z-zoom)/sec;
+        targetZoomIn = zoomIn;
+    }
+
+    template<typename F>
+    void zoomTo(float z, float sec ,F &func) {
+        targetZoom = z;
+        targetZoomPerSecond = (z-zoom)/sec;
+        targetCallback = std::move(func);
+    }
+
     void rotateTo(float degrees, float sec);
+    void animateHeight() {
+        //mode7Params.winHeight = 600;
+        //mode7Params.winYPos = 0;
+        //mode7Params.horizon = 5;
+        //CameraTopDownMode = false;
+
+    }
+
+
     void changeHeight (float d);
 
     void Update();
@@ -88,3 +136,10 @@ public:
     }
 
 };
+
+
+//void Camera::zoomTo(float z, float sec, std::function<void()> func ) {
+//
+//    //int remainder = targetZoomPerSecond % 2;
+//    //targetZoomPerSecond = targetZoomPerSecond - remainder;
+//}

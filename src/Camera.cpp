@@ -15,7 +15,7 @@ void Camera::Reset() {
     targetZoomPerSecond = 0;
     targetDegreesPerSecond = 0;
 
-    zoomSpeed = 100.0f;
+    //zoomSpeed = 100.0f;
     height = 20;
 }
 
@@ -90,9 +90,12 @@ void Camera::Update() {
     if (targetZoomPerSecond != 0) {
 
         //Logger::Log(std::to_string((int)zoom) +  " - " + std::to_string((int)targetZoom));
-        if ((int)zoom >= (int)targetZoom) {
+        if ((targetZoomIn && (int)zoom > (int)targetZoom) ||
+            (!targetZoomIn && (int)zoom < (int)targetZoom)
+        ) {
             //angle = targetDegrees*DTR;
             targetZoomPerSecond = 0;
+            //targetCallback(*this);
             return;
         }
 
@@ -101,13 +104,6 @@ void Camera::Update() {
         Zoom(d);
     }
 
-}
-
-void Camera::zoomTo(float z, float sec) {
-    targetZoom = z;
-    targetZoomPerSecond = (z-zoom)/sec;
-    //int remainder = targetZoomPerSecond % 2;
-    //targetZoomPerSecond = targetZoomPerSecond - remainder;
 }
 
 void Camera::rotateTo(float degrees, float sec) {
