@@ -6,6 +6,7 @@
 #include <filesystem>
 #include "function.h"
 #include "Camera.h"
+#include "RotateRect.h"
 #define MOVE_SPEED 5
 
 const int FPS = 60;
@@ -70,7 +71,7 @@ void init()
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             1200,
-            600,
+            512,
             SDL_WINDOW_BORDERLESS|SDL_WINDOW_OPENGL
     );
     if (!window) {
@@ -90,7 +91,7 @@ int millisecsPreviousFrame = 0;
 int main(int argc, char *argv[]) {
 
     init();
-    Camera c(renderer);
+    Camera c;
     std::string filePath = "./assets/base.png";
     if (!std::filesystem::exists(filePath)) {
         Logger::Err("Texture not found: " + filePath);
@@ -119,6 +120,8 @@ int main(int argc, char *argv[]) {
     int horizon = 50;
     int sampleHeight = 200;
 
+
+
     while(running) {
         int timeToWait = MILLISECS_PER_FRAME - (SDL_GetTicks64() - millisecsPreviousFrame);
         if (timeToWait > 0 && timeToWait <= MILLISECS_PER_FRAME) {
@@ -135,42 +138,25 @@ int main(int argc, char *argv[]) {
         if (moveUp) {
             c.moveUp(MOVE_SPEED);
         }
-
         if (moveDown) {
             c.moveDown(MOVE_SPEED);
         }
-
         if (moveLeft) {
             c.moveLeft(MOVE_SPEED);
            // camera.x -= MOVE_SPEED;
         }
-        if (moveRight) {
-            c.moveRight(MOVE_SPEED);
-          //  camera.x += MOVE_SPEED;
-        }
-        if (rotateLeft) {
-            c.rotate(1.0f);
-           // cameraRotation-=.01f;
-        }
-        if (rotateRight) {
-            c.rotate(-1.0f); //clockwise rotation is negative
-           // cameraRotation+=.01f;
-        }
-        if (zoomIn) {
-            c.ZoomIn();
-            //shrinkRect(camera);
-        }
-        if (zoomOut) {
-            c.ZoomOut();
-            //growRect(camera);
-        }
-
+        if (moveRight) c.moveRight(MOVE_SPEED);
+        if (rotateLeft) c.rotate(-2.0f);
+        if (rotateRight) c.rotate(2.0f);
+        if (zoomIn) c.Zoom(2);
+        if (zoomOut) c.Zoom(-2);
         if (flyUp) c.changeHeight(1);
         if (flyDown) c.changeHeight(-1);
-
         if (skew) {
             c.skewHorizontal(0.01f);
         }
+
+        c.Update();
 
         //Clear
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
@@ -183,12 +169,27 @@ int main(int argc, char *argv[]) {
 
         //Texture is twice the size in left panel, to compensate the camera should be drawn halved
         float factor = (float)rectLeft.w / convertedSurface->w;
-        //SDL_Rect scaledCamera = scaleRect(camera, factor);
-        //SDL_RenderDrawRect(renderer, &scaledCamera);
-        //SDL_RenderDrawRect(renderer, &camera);
-        c.debugDraw(factor);
+        RotateRect rotateRect(c.x, c.y, c.w, c.h, c.zoom, c.angle);
+        rotateRect.DrawRect(renderer, factor);
 
-        SDL_Surface  *sur = SDL_CreateRGBSurface (0, c.w, c.h, 32,0,0,0,0);
+
+       // c.debugDraw(factor);
+
+
+        int newX = c.x;
+        int newY = c.y;
+        int newW = c.w;
+        int newH = c.h;
+
+        if ((int)c.zoom % 2 == 0 && (int)c.zoom != 0 ) {
+            newX += c.zoom / 2.0f;
+            newY += c.zoom / 2.0f;
+            newW -= c.zoom ;
+            newH -= c.zoom ;
+        }
+
+
+        SDL_Surface  *sur = SDL_CreateRGBSurface (0, newW, newH, 32,0,0,0,0);
         SDL_Surface  *newSurface = SDL_ConvertSurfaceFormat(sur, SDL_PIXELFORMAT_RGBA32, 0);
         SDL_FreeSurface(sur);
 
@@ -197,8 +198,8 @@ int main(int argc, char *argv[]) {
 
         // current position in the source bitmap
         float src_x, src_y;
-        float start_x = c.x;
-        float start_y = c.y;
+        float start_x = newX;
+        float start_y = newY;
 
         float dest_x;
         float dest_y;
@@ -207,19 +208,20 @@ int main(int argc, char *argv[]) {
         if (switchView) {
 
             if (CameraTopDownMode) {
-                if (c.zoom < 130) {
+                //if (c.zoom < 130) {
                     Logger::Log(c.zoom);
-                    c.zoomSpeed = 160;
+                   // c.zoomSpeed = 160;
                     //zoomIn = true;
                     //rotateLeft = true;
-                    c.rotateTo(-90, 5);
-                    switchView = false;
+                    //c.rotateTo(90, 5);
+                    c.zoomTo(28, 2);
+                switchView = false;
                     //c.Zoom(2 * deltaTime);
-                } else {
-
-                    zoomIn =false;
+               // } else {
+                    switchView = false;
+                    //zoomIn =false;
                     //CameraTopDownMode = false;
-                }
+               // }
             } else {
 
 
@@ -232,22 +234,24 @@ int main(int argc, char *argv[]) {
         if (CameraTopDownMode) {
 
 
-            for (int y = 0; y < c.h; y++) {
+
+            for (int y = 0; y < newH; y++) {
 
                 // set the position in the source bitmap to the
                 // beginning of this line
                 src_x = start_x;
                 src_y = start_y;
 
-                for (int x = 0; x < c.w; x++) {
-                    dest_x = src_x - (c.w / 2.0f) - c.x;
-                    dest_y = src_y - (c.h / 2.0f) - c.y;
+                for (int x = 0; x < newW; x++) {
+
+                    dest_x = src_x - (newW / 2.0f) - newX;
+                    dest_y = src_y - (newH / 2.0f) - newY;
 
                     rotated_x = dest_x * cos(c.angle) - dest_y * sin(c.angle);
                     rotated_y = dest_x * sin(c.angle) + dest_y * cos(c.angle);
 
-                    dest_x = rotated_x + (c.w / 2.0f) + c.x;
-                    dest_y = rotated_y + (c.h / 2.0f) + c.y;
+                    dest_x = rotated_x + (newW / 2.0f) + newX;
+                    dest_y = rotated_y + (newH / 2.0f) + newY;
 
                     Uint32 pixel = get_pixel(convertedSurface,
                                              (int) dest_x & x_mask,
@@ -310,7 +314,8 @@ int main(int argc, char *argv[]) {
 
         SDL_RenderPresent(renderer);
 
-        c.Update();
+
+
 
         while (SDL_PollEvent(&ev)) {
             const Uint8 *keys = SDL_GetKeyboardState(nullptr);
@@ -377,6 +382,11 @@ int main(int argc, char *argv[]) {
                     if (ev.key.keysym.sym == SDLK_p) horizon !=1 ? horizon-- : 1;
                     if (ev.key.keysym.sym == SDLK_k) sampleHeight++;
                     if (ev.key.keysym.sym == SDLK_l) sampleHeight--;
+
+                    if (ev.key.keysym.sym == SDLK_r) {
+                        c.Reset();
+
+                    }
                     break;
 
 
