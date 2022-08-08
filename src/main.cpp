@@ -23,7 +23,7 @@ const int MILLISECS_PER_FRAME = 1000 / FPS;
  * FOV = angle
  */
 
-bool CameraTopDownMode = true;
+bool CameraTopDownMode = false;
 SDL_Event ev;
 
 
@@ -71,7 +71,7 @@ void init()
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             1200,
-            512,
+            600,
             SDL_WINDOW_BORDERLESS|SDL_WINDOW_OPENGL
     );
     if (!window) {
@@ -87,6 +87,7 @@ void init()
 
 bool switchView{};
 int millisecsPreviousFrame = 0;
+int fFoVDivider{4};
 
 int main(int argc, char *argv[]) {
 
@@ -169,8 +170,11 @@ int main(int argc, char *argv[]) {
 
         //Texture is twice the size in left panel, to compensate the camera should be drawn halved
         float factor = (float)rectLeft.w / convertedSurface->w;
-        RotateRect rotateRect(c.x, c.y, c.w, c.h, c.zoom, c.angle);
-        rotateRect.DrawRect(renderer, factor);
+
+        //if (CameraTopDownMode) {
+            RotateRect rotateRect(c.x, c.y, c.w, c.h, c.zoom, c.angle);
+            rotateRect.DrawRect(renderer, factor);
+        //}
 
 
        // c.debugDraw(factor);
@@ -233,8 +237,6 @@ int main(int argc, char *argv[]) {
         //Logger::Log(c.zoom);
         if (CameraTopDownMode) {
 
-
-
             for (int y = 0; y < newH; y++) {
 
                 // set the position in the source bitmap to the
@@ -247,8 +249,12 @@ int main(int argc, char *argv[]) {
                     dest_x = src_x - (newW / 2.0f) - newX;
                     dest_y = src_y - (newH / 2.0f) - newY;
 
-                    rotated_x = dest_x * cos(c.angle) - dest_y * sin(c.angle);
-                    rotated_y = dest_x * sin(c.angle) + dest_y * cos(c.angle);
+                    //We need an offset to the angle ;
+                    //start of angle zero means right-facing, so rotate camera when seen top down.
+                    //Basically, decide if we want to show the view from the player, or from a always
+                    //north-pointing map, aka google maps
+                    rotated_x = dest_x * cos(c.angle+0.5*M_PI) - dest_y * sin(c.angle+0.5*M_PI);
+                    rotated_y = dest_x * sin(c.angle+0.5*M_PI) + dest_y * cos(c.angle+0.5*M_PI);
 
                     dest_x = rotated_x + (newW / 2.0f) + newX;
                     dest_y = rotated_y + (newH / 2.0f) + newY;
@@ -271,15 +277,25 @@ int main(int argc, char *argv[]) {
 
             // the distance and horizontal scale of the line we are drawing
 
-            float fFoVHalf = M_PI / 4;
-
+            float fFoVHalf = M_PI / fFoVDivider;
+            Logger::Log(std::to_string(c.x) + ", " + std::to_string(c.y));
             for (int y = 0; y < newSurface->h/2; y++) {
-                float angle = -c.angle-0.5*M_PI;
+                //float angle = -c.angle-0.5*M_PI;
+                float angle = c.angle;
                 float distance = c.height * sampleHeight / (y + horizon);
-                float fStartX = -c.x + (cosf(angle + fFoVHalf) * distance);
-                float fStartY = -c.y - (sinf(angle + fFoVHalf) * distance);
-                float fEndX = -c.x + (cosf(angle - fFoVHalf) * distance);
-                float fEndY = -c.y - (sinf(angle - fFoVHalf) * distance);
+                //distance = y+1;
+                float fStartX = (c.x + c.w/2) + (cosf(-angle + fFoVHalf) * distance);
+                float fStartY = (c.y + c.h/2) - (sinf(-angle + fFoVHalf) * distance);
+                Logger::Log(std::to_string(fStartX) + ", " + std::to_string(fStartY));
+
+
+                float fEndX = c.x + c.w/2 + (cosf(-angle - fFoVHalf) * distance);
+                float fEndY = (c.y + c.h/2) - (sinf(-angle - fFoVHalf) * distance);
+
+                Logger::Log(std::to_string(fEndX) + ", " + std::to_string(fEndY));
+
+                SDL_RenderDrawLine(renderer, fStartX*factor, fStartY*factor, fEndX*factor, fEndY*factor);
+
 
 //                Logger::Log("first: " + std::to_string(first) + ", second " + std::to_string(second) + ", final: " + std::to_string(distance));
 //                //huh++;
@@ -296,7 +312,7 @@ int main(int argc, char *argv[]) {
                                            (int) fSampleX & x_mask,
                                            (int) fSampleY & y_mask);
 
-                    put_pixel(newSurface, (int) x, (int) y + newSurface->h/2, pixel);
+                    put_pixel(newSurface, (int) x, (int) y , pixel);
                 }
             }
         }
@@ -382,6 +398,11 @@ int main(int argc, char *argv[]) {
                     if (ev.key.keysym.sym == SDLK_p) horizon !=1 ? horizon-- : 1;
                     if (ev.key.keysym.sym == SDLK_k) sampleHeight++;
                     if (ev.key.keysym.sym == SDLK_l) sampleHeight--;
+
+                    if (ev.key.keysym.sym == SDLK_f) fFoVDivider--;
+                    if (ev.key.keysym.sym == SDLK_g) fFoVDivider++;
+
+                    if (ev.key.keysym.sym == SDLK_y) CameraTopDownMode = !CameraTopDownMode;
 
                     if (ev.key.keysym.sym == SDLK_r) {
                         c.Reset();

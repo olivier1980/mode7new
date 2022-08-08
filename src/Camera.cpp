@@ -102,7 +102,9 @@ void Camera::rotateTo(float degrees, float sec) {
 }
 
 void Camera::changeHeight (float d) {
-    height += d;
+    if (height + d > 0) {
+        height += d;
+    }
 };
 
 void Camera::rotate(float degrees) {
