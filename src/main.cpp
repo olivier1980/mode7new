@@ -80,11 +80,21 @@ void init()
     loadfont();
 }
 
+//struct Mode7Params {
+//    float fFoVDivider{5.0f};
+//    float sampleHeight{300.0f};
+//    float sampleWidth{200.0f};
+//    float horizon = 25.0f; //5
+//    int winHeight = 600;
+//    int winYPos = 0;
+//};
 struct Mode7Params {
     float fFoVDivider{5.0f};
     float sampleHeight{200.0f};
     float sampleWidth{200.0f};
-    float horizon = 5.0f;
+    float horizon = 5.0f; //5
+    int winHeight = 300;
+    int winYPos = 300;
 };
 
 Mode7Params mode7Params;
@@ -198,9 +208,17 @@ int main(int argc, char *argv[]) {
         SDL_Rect camera = c.getZoomedSDLRect();
 
         rectRight.x = 600;
-        rectRight.y=  CameraTopDownMode ? 0 : 300;
+        rectRight.y=  CameraTopDownMode ? 0 : mode7Params.winYPos;
         rectRight.w = 600;
-        rectRight.h = 600;
+
+        //Test variations:
+        //window 600, y pos change only
+        //window linked to surface, change both ypos and height
+        //camera should face as much down as possible and rotate up to level
+        //build new automatic transformations!
+        rectRight.h = CameraTopDownMode ? 600 : mode7Params.winHeight;;
+
+        Logger::Log(rectRight.y);
 
         //Clear
         SDL_SetRenderDrawColor(renderer, 0,0,0,255);
@@ -217,7 +235,8 @@ int main(int argc, char *argv[]) {
         rotateRect.DrawRect(renderer, factor);
 
         //Setup surface
-        SDL_Surface  *sur = SDL_CreateRGBSurface (0, camera.w, camera.h, 32,0,0,0,0);
+        auto surfaceHeight = CameraTopDownMode ? camera.h : mode7Params.winHeight;
+        SDL_Surface  *sur = SDL_CreateRGBSurface (0, camera.w, surfaceHeight, 32,0,0,0,0);
         SDL_Surface  *newSurface = SDL_ConvertSurfaceFormat(sur, SDL_PIXELFORMAT_RGBA32, 0);
         SDL_FreeSurface(sur);
 
@@ -241,8 +260,8 @@ int main(int argc, char *argv[]) {
                    // c.zoomSpeed = 160;
                     //zoomIn = true;
                     //rotateLeft = true;
-                    c.rotateTo(90, 5);
-                    c.zoomTo(68, 2);
+                    c.rotateTo(270, 3);
+                    c.zoomTo(130, 3);
                     switchView = false;
                     //c.Zoom(2 * deltaTime);
                // } else {
@@ -302,7 +321,7 @@ int main(int argc, char *argv[]) {
             // the distance and horizontal scale of the line we are drawing
             float fFoVHalf = M_PI / mode7Params.fFoVDivider;
 
-            for (int y = 0; y < newSurface->h/2; y++) {
+            for (int y = 0; y < mode7Params.winHeight; y++) {
 
                 float angle = c.angle;
                 float distance = c.height * mode7Params.sampleHeight / (y + mode7Params.horizon);
@@ -361,6 +380,8 @@ int main(int argc, char *argv[]) {
                                         + std::to_string(camera.x)
 
         ).c_str(), 0, 100);
+        drawDebug(renderer,  ("Height: " + std::to_string(c.height)).c_str(), 400, 0);
+        drawDebug(renderer,  ("Zoom: " + std::to_string(c.zoom)).c_str(), 400, 20);
 
         SDL_RenderPresent(renderer);
 
@@ -435,6 +456,12 @@ int main(int argc, char *argv[]) {
 
                     if (ev.key.keysym.sym == SDLK_2) mode7Params.sampleWidth++;
                     if (ev.key.keysym.sym == SDLK_3) mode7Params.sampleWidth--;
+
+                    if (ev.key.keysym.sym == SDLK_4) mode7Params.winHeight--;
+                    if (ev.key.keysym.sym == SDLK_5) mode7Params.winHeight++;
+
+                    if (ev.key.keysym.sym == SDLK_6) mode7Params.winYPos--;
+                    if (ev.key.keysym.sym == SDLK_7) mode7Params.winYPos++;
 
                     if (ev.key.keysym.sym == SDLK_f) mode7Params.fFoVDivider--;
                     if (ev.key.keysym.sym == SDLK_g) mode7Params.fFoVDivider++;

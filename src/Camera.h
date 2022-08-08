@@ -74,10 +74,10 @@ public:
         int localZoom2 = closestInteger(zoom, 2);
         int localZoom = closestFloat(zoom, 2.0f);
 
-        Logger::Log(std::to_string(zoom)
-                    +  " - " + std::to_string(localZoom2)
-                   +  " - " + std::to_string(localZoom)
-        );
+//        Logger::Log(std::to_string(zoom)
+//                    +  " - " + std::to_string(localZoom2)
+//                   +  " - " + std::to_string(localZoom)
+//        );
 
         return SDL_Rect {
             .x = (int)(x + (localZoom / 2.0f)),

@@ -6,12 +6,12 @@ float DTR = M_PI/180.0f;
 float RTD = 180.0f/M_PI;
 
 void Camera::Reset() {
-    x = 0;
-    y = 0;
+    x = 100;
+    y = 100;
     w = 200;
     h = 200;
     angle = 0;
-    zoom = 0;
+    zoom = -20;
     targetZoomPerSecond = 0;
     targetDegreesPerSecond = 0;
 
@@ -70,13 +70,13 @@ void Camera::Zoom(float z) {
 
     zoom += z;
 
-    Logger::Log("Current zoom: " + std::to_string(zoom));
+    //Logger::Log("Current zoom: " + std::to_string(zoom));
 }
 
 void Camera::Update() {
     if (targetDegreesPerSecond != 0) {
 
-        if ((int)(angle*RTD) == (int)targetDegrees) {
+        if ((int)(angle*RTD) > (int)targetDegrees) {
             angle = targetDegrees*DTR;
             targetDegreesPerSecond = 0;
             return;
