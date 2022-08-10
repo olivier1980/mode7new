@@ -1,5 +1,6 @@
 #include "Camera.h"
 #include "glm/glm.hpp"
+
 //#include "Logger/Logger.h"
 
 float DTR = M_PI/180.0f;
@@ -74,17 +75,38 @@ void Camera::Zoom(float z) {
 }
 
 void Camera::Update() {
-    if (targetDegreesPerSecond != 0) {
 
-        if ((int)(angle*RTD) > (int)targetDegrees) {
-            angle = targetDegrees*DTR;
-            targetDegreesPerSecond = 0;
-            return;
+    if (!animatelist.empty()) {
+        auto el = animatelist.front();
+
+        //trying to copy, but its unique so by definition cant be copied
+//        for (auto action : el.actions) {
+//        }
+        for (auto &action : el.actions) {
+            //static_cast<Type> //allows cast to primitive types
+            //dynamic_cast (checks at runtime for which object is in ptr)
+            //const_cast adds/removes const - code smell
+            //reinterpret_cast  -doesnt check anything, quake3 sqrt faster hack
+
+            //use run action to switch instead action->run();
+
+            //dynamic cast has higher cost
+
+            if (auto test = dynamic_cast<ZoomAction*>(action.get())) {
+                //test->targetZoom
+            }
+            if (auto test = dynamic_cast<TranslateAction*>(action.get())) {
+                //test->targetZoom
+
+            }
         }
 
-        auto d = targetDegreesPerSecond * dt;
+        //reset pointer in loop  .reset() = sets to null, and cleans up
+        //remove pointer when done
 
-        rotate(d);
+
+
+        animatelist.pop();
     }
 
     if (targetZoomPerSecond != 0) {
@@ -127,4 +149,6 @@ void Camera::rotate(float degrees) {
 
 }
 
-
+ZoomAction::ZoomAction(int targetZoom) : targetZoom(targetZoom) {}
+TranslateAction::TranslateAction(int targetX, int targetY) : targetX(targetX), targetY(targetY) {}
+TurnAction::TurnAction(float targetAngle) : targetAngle(targetAngle) {}

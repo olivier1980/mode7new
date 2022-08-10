@@ -4,6 +4,7 @@
 #include <functional>
 #include <utility>
 #include "Logger/Logger.h"
+#include <queue>
 
 extern float DTR;// = M_PI/180.0f;
 extern float RTD;// = 180.0f/M_PI;
@@ -17,6 +18,60 @@ struct Mode7Param {
     int winYPos = 300;
 };
 
+
+struct IAnimateAction {
+    //virtual void test() {}
+
+    //runtime type information
+    //virtual table pointer first before fields
+    virtual ~IAnimateAction() = default;
+
+    virtual void run() {
+        std::cout << "IAnimateAction";
+    };
+};
+
+struct AnimateParams{
+
+    std::unique_ptr<IAnimateAction> action;
+    //callback std::function
+    //msec
+};
+
+struct AnimateActions {
+    int mSec; //define in action itself?
+    //CALLBACK PARAMETER
+    std::vector<std::unique_ptr<IAnimateAction>> actions;
+    //std::vector<IAnimateAction> actions;
+};
+
+struct ZoomAction : public IAnimateAction {
+    explicit ZoomAction(int targetZoom);
+    int targetZoom;
+
+    //override not required but good practice
+    //
+    void run() override {
+        std::cout << "ZoomAction" << targetZoom;
+    };
+    //virtual void run() {};
+};
+struct TranslateAction : public IAnimateAction{
+    TranslateAction(int targetX, int targetY);
+    int targetX;
+    int targetY;
+
+    void run() override {
+        std::cout << "TranslateAction";
+    };
+};
+struct TurnAction: public IAnimateAction {
+    explicit TurnAction(float targetAngle);
+    float targetAngle; //radials
+};
+
+
+
 class Camera {
 public:
     Camera() = default;
@@ -27,6 +82,8 @@ public:
     int w{200};
     int h{200};
 
+
+    std::queue<AnimateActions> animatelist;
 
     float angle{35*DTR};
     float zoom{};
@@ -43,6 +100,7 @@ public:
     float targetZoomPerSecond{};
     float targetZoomIn = true;
 
+    //performance
     std::function<void(Camera &t)> targetCallback;
 
     void moveLeft(float d);

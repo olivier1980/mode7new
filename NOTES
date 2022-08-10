@@ -1,0 +1,14 @@
+- custom  allocator
+- clear completely instead of deallocating manually one by one
+
+-stack needs to know size at compile time
+-allocating on heap can use number from user for arbitrary
+
+-size of pointer known at compile time
+
+-vector stores in heap
+	-holds pointer to beginning
+	-holds pointer to end
+	-knows amount of elements
+
+-shared ptr when must, like in threads

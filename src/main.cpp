@@ -206,8 +206,34 @@ int main(int argc, char *argv[]) {
                    // c.zoomSpeed = 160;
                     //zoomIn = true;
                     //rotateLeft = true;
-                    c.rotateTo(270, 3);
-                    c.zoomTo(130, 3);
+
+                    //parent is first argument
+                    //ZoomAction zoomAction2{1,2};
+
+
+                    AnimateActions containerActions;
+                    containerActions.mSec = 2000;
+
+                    //make unique does 'new' automatically
+                    containerActions.actions.push_back(
+                            std::make_unique<IAnimateAction>(ZoomAction(300, CALLBACK)
+                    ));
+                    containerActions.actions.push_back(
+                            std::make_unique<IAnimateAction>(TranslateAction(30,40)
+                    ));
+
+                    containerActions.actions.push_back(
+                        std::make_unique<IAnimateAction>(TranslateAction(30,40)
+                    ));
+
+                    //std::unique_ptr<ZoomAction> actions = std::make_unique<ZoomAction>();
+                    //actions->targetZoom = 30;
+                    //actions->push_back(ZoomAction(130));
+                    //actions.actions.push_back(TurnAction(270));
+                    //c.animatelist.push(actions);
+
+                    //c.rotateTo(270, 3);
+                    //c.zoomTo(130, 3);
                     switchView = false;
                     //c.Zoom(2 * deltaTime);
                // } else {
