@@ -5,6 +5,9 @@
 #include <utility>
 #include "Logger/Logger.h"
 #include <queue>
+#include <memory>
+#include <variant>
+#include <math.h>
 
 extern float DTR;// = M_PI/180.0f;
 extern float RTD;// = 180.0f/M_PI;
@@ -38,12 +41,7 @@ struct AnimateParams{
     //msec
 };
 
-struct AnimateActions {
-    int mSec; //define in action itself?
-    //CALLBACK PARAMETER
-    std::vector<std::unique_ptr<IAnimateAction>> actions;
-    //std::vector<IAnimateAction> actions;
-};
+
 
 struct ZoomAction : public IAnimateAction {
     explicit ZoomAction(int targetZoom);
@@ -68,6 +66,14 @@ struct TranslateAction : public IAnimateAction{
 struct TurnAction: public IAnimateAction {
     explicit TurnAction(float targetAngle);
     float targetAngle; //radials
+};
+
+struct AnimateActions {
+    int mSec; //define in action itself?
+    //CALLBACK PARAMETER
+    //std::vector<std::unique_ptr<IAnimateAction>> actions;
+    std::vector<std::variant<ZoomAction, TranslateAction>> actions;
+    //std::vector<IAnimateAction> actions;
 };
 
 

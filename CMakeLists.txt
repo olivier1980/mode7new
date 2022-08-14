@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 include_directories(I:/SDL2/include lib)
 link_directories(I:/SDL2/lib/x64 lib)
 
-file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/*.cpp)
 
 add_executable(${PROJECT_NAME}  ${SRC_FILES} src/function.h src/Camera.cpp src/Camera.h src/RotateRect.h)
 

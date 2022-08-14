@@ -91,21 +91,18 @@ void Camera::Update() {
             //use run action to switch instead action->run();
 
             //dynamic cast has higher cost
-
-            if (auto test = dynamic_cast<ZoomAction*>(action.get())) {
-                //test->targetZoom
+            if (holds_alternative<ZoomAction>(action)) {
+                auto zoom = get<ZoomAction>(action);
+                //targetZoomPerSecond = zoom.targetZoom;
             }
-            if (auto test = dynamic_cast<TranslateAction*>(action.get())) {
-                //test->targetZoom
-
+            if (holds_alternative<TranslateAction>(action)) {
+                auto zoom = get<TranslateAction>(action);
             }
+
         }
 
         //reset pointer in loop  .reset() = sets to null, and cleans up
         //remove pointer when done
-
-
-
         animatelist.pop();
     }
 

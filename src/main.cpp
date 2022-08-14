@@ -7,6 +7,11 @@
 #include "function.h"
 #include "Camera.h"
 #include "RotateRect.h"
+
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_sdl.h>
+#include <imgui/imgui_impl_sdlrenderer.h>
+
 #define MOVE_SPEED 5
 
 const int FPS = 60;
@@ -215,16 +220,9 @@ int main(int argc, char *argv[]) {
                     containerActions.mSec = 2000;
 
                     //make unique does 'new' automatically
-                    containerActions.actions.push_back(
-                            std::make_unique<IAnimateAction>(ZoomAction(300, CALLBACK)
-                    ));
-                    containerActions.actions.push_back(
-                            std::make_unique<IAnimateAction>(TranslateAction(30,40)
-                    ));
-
-                    containerActions.actions.push_back(
-                        std::make_unique<IAnimateAction>(TranslateAction(30,40)
-                    ));
+                    //emplace_back is shortcut for push_back with constructor
+                    containerActions.actions.emplace_back(ZoomAction(300));
+                    containerActions.actions.emplace_back(TranslateAction(30,40));
 
                     //std::unique_ptr<ZoomAction> actions = std::make_unique<ZoomAction>();
                     //actions->targetZoom = 30;

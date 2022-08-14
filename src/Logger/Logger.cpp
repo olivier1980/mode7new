@@ -7,13 +7,17 @@
 std::vector<LogEntry> Logger::messages;
 
 std::string Logger::getDateString() {
-    time_t now = time(nullptr);
-    tm timeinfo{};
-    localtime_s(&timeinfo, &now);
-
-    std::ostringstream timestream;
-    timestream << std::put_time(&timeinfo, "%d-%m-%Y %H:%M:%S");
-    return timestream.str();
+        std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    std::string output(12, '\0');
+    std::strftime(&output[0], output.size(), "%d-%m-%Y %H:%M:%S", std::localtime(&now));
+    return output;
+//    time_t now = time(nullptr);
+//    tm timeinfo{};
+//    localtime_s(&timeinfo, &now);
+//
+//    std::ostringstream timestream;
+//    timestream << std::put_time(&timeinfo, "%d-%m-%Y %H:%M:%S");
+//    return timestream.str();
 }
 
 void Logger::Log(const std::string &message) {
