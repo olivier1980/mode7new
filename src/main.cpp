@@ -228,7 +228,7 @@ int main(int argc, char *argv[]) {
                     //actions->targetZoom = 30;
                     //actions->push_back(ZoomAction(130));
                     //actions.actions.push_back(TurnAction(270));
-                    //c.animatelist.push(actions);
+                    c.animatelist.push(containerActions);
 
                     //c.rotateTo(270, 3);
                     //c.zoomTo(130, 3);

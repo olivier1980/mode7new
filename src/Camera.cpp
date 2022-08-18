@@ -93,7 +93,7 @@ void Camera::Update() {
             //dynamic cast has higher cost
             if (holds_alternative<ZoomAction>(action)) {
                 auto zoom = get<ZoomAction>(action);
-                //targetZoomPerSecond = zoom.targetZoom;
+                targetZoomPerSecond = zoom.targetZoom;
             }
             if (holds_alternative<TranslateAction>(action)) {
                 auto zoom = get<TranslateAction>(action);
